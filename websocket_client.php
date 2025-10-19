@@ -112,7 +112,12 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
   if (!$persistant or ftell($sp) === 0) {
 
     //Request upgrade to websocket
-    $rc = fwrite($sp,$header);
+    try{
+      $rc = fwrite($sp,$header);
+    }
+    catch(Exception $e){
+      $rc = false;
+    }
     if(!$rc){
       $error_string
         = "Unable to send upgrade header to websocket server: $errstr ($errno)";
@@ -176,7 +181,12 @@ function websocket_write($sp,$data,$final=true,$binary=true){
   for($i = 0; $i < strlen($data); $i++)
     $data[$i]=chr(ord($data[$i]) ^ ord($mask[$i % 4]));
 
-  return fwrite($sp,$header.$data);
+  try{
+    return fwrite($sp,$header.$data);
+  }
+  catch(Exception $e){
+    return false;
+  }
 }
 
 /*============================================================================*\
@@ -255,7 +265,13 @@ function websocket_read($sp,&$error_string=NULL){
     // Handle ping requests (sort of) send pong and continue to read
     if($opcode == 9){
       // Assamble header: FINal 0x80 | Opcode 0x0A + Mask on 0x80 with zero payload
-      fwrite($sp,chr(0x8A) . chr(0x80) . pack("N", rand(1,0x7FFFFFFF)));
+      try{
+        fwrite($sp,chr(0x8A) . chr(0x80) . pack("N", rand(1,0x7FFFFFFF)));
+      }
+      catch(Exception $e){
+        $error_string = "Writing ping to websocket failed.";
+        return false;
+      }
       continue;
 
     // Close
