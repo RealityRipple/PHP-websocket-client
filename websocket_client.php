@@ -124,7 +124,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
       return false;
     }
 
-    // Read response into an assotiative array of headers. Fails if upgrade failes.
+    // Retrieve response from the server
     $response_header = '';
     while(strpos($response_header, "\r\n\r\n") === false){
       $response_header.=fread($sp, 1024);
@@ -140,6 +140,19 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     // The key we send is returned, concatenate with "258EAFA5-E914-47DA-95CA-
     // C5AB0DC85B11" and then base64-encoded. one can verify if one feels the need...
 
+    $chk=base64_encode(hash('sha1',$key.'258EAFA5-E914-47DA-95CA-C5AB0DC85B11',true));
+    $hList=explode("\r\n",$response_header);
+    for($i=0;$i<count($hList);$i++){
+      if(strpos($hList[$i],':') === false)
+        continue;
+      list($k,$v) = explode(':',$hList[$i],2);
+      if (strtolower($k) !== 'sec-websocket-accept')
+        continue;
+      if ($v !== $chk){
+        $error_string = "Invalid Check: $v is not equal to $chk\n";
+        return false;
+      }
+    }
   }
   return $sp;
 }
