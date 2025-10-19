@@ -83,6 +83,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     ."pragma: no-cache\r\n"
     ."Upgrade: WebSocket\r\n"
     ."Connection: Upgrade\r\n"
+    ."User-Agent: Mozilla/5.0 (X11; Linux x86_64)\r\n"
     ."Sec-WebSocket-Key: $key\r\n"
     ."Sec-WebSocket-Version: 13\r\n";
 
