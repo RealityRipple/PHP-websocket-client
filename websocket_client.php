@@ -125,7 +125,10 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     }
 
     // Read response into an assotiative array of headers. Fails if upgrade failes.
-    $response_header=fread($sp, 1024);
+    $response_header = '';
+    while(strpos($response_header, "\r\n\r\n") === false){
+      $response_header.=fread($sp, 1024);
+    }
 
     // status code 101 indicates that the WebSocket handshake has completed.
     if (stripos($response_header, ' 101 ') === false
