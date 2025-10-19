@@ -120,13 +120,13 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     }
 
     // Read response into an assotiative array of headers. Fails if upgrade failes.
-    $reaponse_header=fread($sp, 1024);
+    $response_header=fread($sp, 1024);
 
     // status code 101 indicates that the WebSocket handshake has completed.
-    if (stripos($reaponse_header, ' 101 ') === false
-      || stripos($reaponse_header, 'Sec-WebSocket-Accept: ') === false) {
+    if (stripos($response_header, ' 101 ') === false
+      || stripos($response_header, 'Sec-WebSocket-Accept: ') === false) {
       $error_string = "Server did not accept to upgrade connection to websocket."
-        .$reaponse_header. E_USER_ERROR;
+        .$response_header. E_USER_ERROR;
       return false;
     }
     // The key we send is returned, concatenate with "258EAFA5-E914-47DA-95CA-
