@@ -151,28 +151,62 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     // Ignore any content body and trim off the trailing double-new-line
     $response_header = substr($response_header,0,strpos($response_header,$nl.$nl));
 
-    // status code 101 indicates that the WebSocket handshake has completed.
-    if (stripos($response_header, ' 101 ') === false
-      || stripos($response_header, 'Sec-WebSocket-Accept: ') === false) {
-      $error_string = "Server did not accept to upgrade connection to websocket."
-        .$response_header. E_USER_ERROR;
+    // Read response into an associative array of headers.
+    $hRet = array();
+    $hList = explode($nl,$response_header);
+    if(count($hList)<2){
+      $error_string = "Server did not respond with an expected HTTP response.";
+      return false;
+    }
+    $hVer = $hList[0];
+    if(substr($hVer,0,5) !== 'HTTP/'){
+      $error_string = "Server did not respond with an expected HTTP response.";
+      return false;
+    }
+    $aVer=explode(' ',$hVer,3);
+    if(count($aVer) !== 3){
+      $error_string = "HTTP response not understood: $hVer";
+      return false;
+    }
+    // Status code 101 indicates that the WebSocket handshake has completed.
+    if($aVer[1] !== '101'){
+      $error_string = "HTTP response code: ".$aVer[1];
+      return false;
+    }
+    for($i=1;$i<count($hList);$i++){
+      if(strpos($hList[$i],':') === false)
+        continue;
+      list($k,$v) = explode(':',$hList[$i],2);
+      // Case-Insensitive keys, please.
+      $k = strtolower($k);
+      if(!array_key_exists($k,$hRet))
+        $hRet[$k] = array();
+      // Split values into array by comma, except set-cookie
+      if($k === 'set-cookie'){
+        $hRet[$k][] = trim($v);
+        continue;
+      }
+      $vs = explode(',',$v);
+      for($c=0;$c<count($vs);$c++){
+        $hRet[$k][] = trim($vs[$c]);
+      }
+    }
+    if(!array_key_exists('sec-websocket-accept',$hRet)){
+      $error_string = "Server did not accept to upgrade connection to websocket.";
+      return false;
+    }
+    if(count($hRet['sec-websocket-accept']) !== 1){
+      $error_string = "Server sent ".count($hRet['sec-websocket-accept'])." accept responses.";
       return false;
     }
     // The key we send is returned, concatenate with "258EAFA5-E914-47DA-95CA-
     // C5AB0DC85B11" and then base64-encoded. one can verify if one feels the need...
 
     $chk=base64_encode(hash('sha1',$key.$magic,true));
-    $hList=explode($nl,$response_header);
-    for($i=0;$i<count($hList);$i++){
-      if(strpos($hList[$i],':') === false)
-        continue;
-      list($k,$v) = explode(':',$hList[$i],2);
-      if (strtolower($k) !== 'sec-websocket-accept')
-        continue;
-      if ($v !== $chk){
-        $error_string = "Invalid Check: $v is not equal to $chk\n";
-        return false;
-      }
+    $srt=$hRet['sec-websocket-accept'][0];
+    if($srt !== $chk){
+      $error_string = "Invalid Check: $srt is not equal to $chk\n";
+      return false;
     }
   }
   return $sp;
