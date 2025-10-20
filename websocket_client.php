@@ -89,7 +89,7 @@
   If the server accepts, it sends a 101 response header, containing
   "Sec-WebSocket-Accept"
 \*============================================================================*/
-function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout=10,$ssl=false, $persistant = false, $path = '/', $agent = 'Mozilla/5.0 (X11; Linux x86_64)', $strict = false, $context = null){
+function websocket_open($host='127.0.0.1',$port=0,$headers='',&$error_string='',$timeout=10,$ssl=false, $persistant = false, $path = '/', $agent = 'Mozilla/5.0 (X11; Linux x86_64)', $strict = false, $ctx = null){
   $nl = "\r\n";
   $magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
   $protoSSL = 'ssl://';
@@ -115,12 +115,16 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
   $header = implode($nl, $hArr).$nl.$nl;
 
   // Connect to server
-  $host = $host ? $host : "127.0.0.1";
-  $port = $port <1 ? ( $ssl ? 443 : 80 ): $port;
-  $address = ($ssl ? $protoSSL : '') . $host . ':' . $port;
+  if($port<1)
+    $port = $ssl ? 443 : 80;
+  $pref = $ssl ? $protoSSL : '';
+  $address = "$pref$host:$port";
   
-  $flags = STREAM_CLIENT_CONNECT | ( $persistant ? STREAM_CLIENT_PERSISTENT : 0 );
-  $ctx = $context ?? stream_context_create();
+  $flags = STREAM_CLIENT_CONNECT;
+  if($persistant)
+    $flags|= STREAM_CLIENT_PERSISTENT;
+  if(!$ctx)
+    $ctx = stream_context_create();
   $sp = stream_socket_client($address, $errno, $errstr, $timeout, $flags, $ctx);
   
   if(!$sp){
