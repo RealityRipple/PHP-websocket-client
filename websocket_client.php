@@ -196,6 +196,30 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
         $hRet[$k][] = trim($vs[$c]);
       }
     }
+    if(!array_key_exists('connection',$hRet)){
+      $error_string = "Server did not return a connection header.";
+      return false;
+    }
+    if(count($hRet['connection']) !== 1){
+      $error_string = "Server returned ".count($hRet['connection'])." Connection headers.";
+      return false;
+    }
+    if($hRet['connection'][0] !== 'upgrade'){
+      $error_string = "Server did not mark the connection for upgrade.";
+      return false;
+    }
+    if(!array_key_exists('upgrade',$hRet)){
+      $error_string = "Server did not return an upgrade header.";
+      return false;
+    }
+    if(count($hRet['upgrade']) !== 1){
+      $error_string = "Server returned ".count($hRet['upgrade'])." Upgrade headers.";
+      return false;
+    }
+    if($hRet['upgrade'][0] !== 'websocket'){
+      $error_string = "Server did not upgrade the connection to websocket.";
+      return false;
+    }
     if(!array_key_exists('sec-websocket-accept',$hRet)){
       $error_string = "Server did not accept to upgrade connection to websocket.";
       return false;
