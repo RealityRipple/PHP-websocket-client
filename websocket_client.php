@@ -143,6 +143,8 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     while(strpos($response_header, $nl.$nl) === false){
       $response_header.=fread($sp, 1024);
     }
+    // Ignore any content body and trim off the trailing double-new-line
+    $response_header = substr($response_header,0,strpos($response_header,$nl.$nl));
 
     // status code 101 indicates that the WebSocket handshake has completed.
     if (stripos($response_header, ' 101 ') === false
