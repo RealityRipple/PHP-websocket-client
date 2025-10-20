@@ -39,32 +39,41 @@
 /*============================================================================*\
   Open websocket connection
 
-  resource websocket_open(string $host [,int $port [,$additional_headers [,string &error_string ,[, int $timeout]]]]
+  resource websocket_open(string $host [,int $port [,$headers [,string &error_string [,int $timeout [,boolean $ssl [,boolean $persistant [,string $path [,resource $context]]]]]]]])
 
   host
     A host URL. It can be a domain name like www.example.com or an IP address,
     with port number. Local host example: 127.0.0.1:8080
 
   port
+    Connection port. If the host has a port number, please make sure this
+    parameter matches the value in host. If set to 0, this will default to 80,
+    or 443 if ssl is true.
 
   headers (optional)
-    additional HTTP headers to attach to the request.
+    Additional HTTP headers to attach to the request.
     For example to parse a session cookie: "Cookie: SID=" . session_id()
 
   error_string (optional)
-    A referenced variable to store error messages, i any
+    A referenced variable to store error messages, if any
 
   timeout (optional)
     The maximum time in seconds, a read operation will wait for an answer from
     the server. Default value is 10 seconds.
 
-  ssl (optional)  
+  ssl (optional)
+    This boolean should be true if connecting over wss, and false for ws.
 
   persistant (optional)
+    This boolean indicates the client socket should remain persistent between
+    page loads.
 
   path (optional)
+    A string containing the path sent in the HTTP GET request that kicks off
+    the WebSocket connection. Default value is "/".
 
-  Context (optional)
+  context (optional)
+    The context of the socket, created by stream_context_create().
 
 
   Open a websocket connection by initiating a HTTP GET, with an upgrade request
