@@ -39,7 +39,7 @@ if( $sp = websocket_open('echo.websocket.org',443,'',$errstr, 10,true) ) {
 
 Open websocket connection
 
-`resource` websocket_open(`string` $host [, `int` $port [, `array` $additional_headers [, `string` &error_string [, `int` $timeout [, `boolean` $ssl [, `boolean` $persistant [, `string` $path [, `string` $agent [, `resource` $context]]]]]]]]] )
+`resource` websocket_open(`string` $host [, `int` $port [, `array` $additional_headers [, `string` &error_string [, `int` $timeout [, `boolean` $ssl [, `boolean` $persistant [, `string` $path [, `string` $agent [, `boolean` $strict [, `resource` $context]]]]]]]]]] )
 
 **host** A host URL. It can be a domain name like www.example.com or an IP address like local host: 127.0.0.1
 
@@ -58,6 +58,8 @@ Open websocket connection
 **path** (optional) A string containing the path sent in the HTTP GET request that kicks off the WebSocket connection.
 
 **agent** (optional) A user agent string sent in the HTT GET request.
+
+**strict** (optional) Verify response headers and fail if anything is missing or wrong.
 
 **context** (optional) A stream context resource created with stream_context_create() used to set various socket stream options.
 
