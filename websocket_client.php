@@ -148,8 +148,7 @@ function websocket_open($host='127.0.0.1',$port=0,$headers='',&$error_string='',
     $rc = false;
   }
   if(!$rc){
-    $error_string
-      = "Unable to send upgrade header to websocket server: $errstr ($errno)";
+    $error_string = "Unable to send upgrade header to websocket server.";
     return false;
   }
 
