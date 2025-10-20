@@ -90,20 +90,21 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
   // The key is for the server to prove it is websocket aware. (We know it is)
   $key=base64_encode(openssl_random_pseudo_bytes(16));
 
-  $header = "GET $path HTTP/1.1$nl"
-    ."Host: $host$nl"
-    ."pragma: no-cache$nl"
-    ."Upgrade: WebSocket$nl"
-    ."Connection: Upgrade$nl"
-    ."User-Agent: Mozilla/5.0 (X11; Linux x86_64)$nl"
-    ."Sec-WebSocket-Key: $key$nl"
-    ."Sec-WebSocket-Version: 13$nl";
+  $hArr = array();
+  $hArr[] = "GET $path HTTP/1.1";
+  $hArr[] = "Host: $host";
+  $hArr[] = 'pragma: no-cache';
+  $hArr[] = 'Upgrade: WebSocket';
+  $hArr[] = 'Connection: Upgrade';
+  $hArr[] = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64)';
+  $hArr[] = "Sec-WebSocket-Key: $key";
+  $hArr[] = 'Sec-WebSocket-Version: 13';
 
   // Add extra headers
-  if(!empty($headers)) foreach($headers as $h) $header.=$h.$nl;
+  if(!empty($headers)) $hArr = array_merge($hArr, $headers);
 
-  // Add end of header marker
-  $header.=$nl;
+  // Stringify and add end of header marker
+  $header = implode($nl, $hArr).$nl.$nl;
 
   // Connect to server
   $host = $host ? $host : "127.0.0.1";
