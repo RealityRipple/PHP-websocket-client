@@ -128,7 +128,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
   // Set timeouts
   stream_set_timeout($sp,$timeout);
 
-  if (!$persistant or ftell($sp) === 0) {
+  if (!$persistant || ftell($sp) === 0) {
 
     //Request upgrade to websocket
     try{
