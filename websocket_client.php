@@ -39,7 +39,7 @@
 /*============================================================================*\
   Open websocket connection
 
-  resource websocket_open(string $host [,int $port [,$headers [,string &error_string [,int $timeout [,boolean $ssl [,boolean $persistant [,string $path [,resource $context]]]]]]]])
+  resource websocket_open(string $host [,int $port [,$headers [,string &error_string [,int $timeout [,boolean $ssl [,boolean $persistant [,string $path [,string $agent [,resource $context]]]]]]]]])
 
   host
     A host URL. It can be a domain name like www.example.com or an IP address,
@@ -72,6 +72,11 @@
     A string containing the path sent in the HTTP GET request that kicks off
     the WebSocket connection. Default value is "/".
 
+  agent (optional)
+    A user agent string sent in the HTT GET request. In recent times, this has
+    more frequently become a requirement for requests to be accepted by hosts.
+    Default value is "Mozilla/5.0 (X11; Linux x86_64)"
+
   context (optional)
     The context of the socket, created by stream_context_create().
 
@@ -81,7 +86,7 @@
   If the server accepts, it sends a 101 response header, containing
   "Sec-WebSocket-Accept"
 \*============================================================================*/
-function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout=10,$ssl=false, $persistant = false, $path = '/', $context = null){
+function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout=10,$ssl=false, $persistant = false, $path = '/', $agent = 'Mozilla/5.0 (X11; Linux x86_64)', $context = null){
   $nl = "\r\n";
   $magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
   $protoSSL = 'ssl://';
@@ -96,7 +101,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
   $hArr[] = 'pragma: no-cache';
   $hArr[] = 'Upgrade: WebSocket';
   $hArr[] = 'Connection: Upgrade';
-  $hArr[] = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64)';
+  $hArr[] = "User-Agent: $agent";
   $hArr[] = "Sec-WebSocket-Key: $key";
   $hArr[] = 'Sec-WebSocket-Version: 13';
 
