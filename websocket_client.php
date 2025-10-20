@@ -141,7 +141,12 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     // Retrieve response from the server
     $response_header = '';
     while(strpos($response_header, $nl.$nl) === false){
-      $response_header.=fread($sp, 1024);
+      $apnd=fread($sp,1024);
+      if($apnd === false){
+        $error_string = "Reading header from websocket failed.";
+        return false;
+      }
+      $response_header.=$apnd;
     }
     // Ignore any content body and trim off the trailing double-new-line
     $response_header = substr($response_header,0,strpos($response_header,$nl.$nl));
