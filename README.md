@@ -39,17 +39,25 @@ if( $sp = websocket_open('echo.websocket.org',443,'',$errstr, 10,true) ) {
 
 Open websocket connection
 
-`resource` websocket_open(`string` $host [, `int` $port [, `array` $additional_headers [, `string` &error_string [, `int` $timeout [, `resource` $context]]]]] )
+`resource` websocket_open(`string` $host [, `int` $port [, `array` $additional_headers [, `string` &error_string [, `int` $timeout [, `boolean` $ssl [, `boolean` $persistant [, `string` $path [, `string` $agent [, `resource` $context]]]]]]]]] )
 
 **host** A host URL. It can be a domain name like www.example.com or an IP address like local host: 127.0.0.1
 
-**port**  The servers port number
+**port**  Connection port. If the host has a port number, please make sure this parameter matches the value in host. If set to 0, this will default to 80, or 443 if ssl is true.
 
 **headers** (optional) additional HTTP headers to attach to the request. For example to parse a session cookie.
 
 **error_string** (optional) A referenced variable to store error messages, if any.
 
 **timeout** (optional) The maximum time in seconds, a read operation will wait for an answer from the server. Default value is 10 seconds.
+
+**ssl** (optional) This boolean should be true if connecting over wss, and false for ws.
+
+**persistant** (optional) This boolean indicates the client socket should remain persistent between page loads.
+
+**path** (optional) A string containing the path sent in the HTTP GET request that kicks off the WebSocket connection.
+
+**agent** (optional) A user agent string sent in the HTT GET request.
 
 **context** (optional) A stream context resource created with stream_context_create() used to set various socket stream options.
 
@@ -87,7 +95,6 @@ Note:
 
 # Contribute
 
-Please let me know if there is any problems with the code.
-Any contributions are accepted, if the code looks nice, not bloated and otherwise reasonable.
+Please make contributions to the origin repository, not this fork.
 
 # License: MIT: Free
