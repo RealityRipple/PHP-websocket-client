@@ -94,26 +94,6 @@ function websocket_open($host='127.0.0.1',$port=0,$headers='',&$error_string='',
   $magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
   $protoSSL = 'ssl://';
 
-  // Generate a key (to convince server that the update is not random)
-  // The key is for the server to prove it is websocket aware. (We know it is)
-  $key=base64_encode(openssl_random_pseudo_bytes(16));
-
-  $hArr = array();
-  $hArr[] = "GET $path HTTP/1.1";
-  $hArr[] = "Host: $host";
-  $hArr[] = 'pragma: no-cache';
-  $hArr[] = 'Upgrade: WebSocket';
-  $hArr[] = 'Connection: Upgrade';
-  $hArr[] = "User-Agent: $agent";
-  $hArr[] = "Sec-WebSocket-Key: $key";
-  $hArr[] = 'Sec-WebSocket-Version: 13';
-
-  // Add extra headers
-  if(!empty($headers)) $hArr = array_merge($hArr, $headers);
-
-  // Stringify and add end of header marker
-  $header = implode($nl, $hArr).$nl.$nl;
-
   // Connect to server
   if($port<1)
     $port = $ssl ? 443 : 80;
@@ -136,6 +116,25 @@ function websocket_open($host='127.0.0.1',$port=0,$headers='',&$error_string='',
   stream_set_timeout($sp,$timeout);
 
   if (!$persistant || ftell($sp) === 0) {
+    // Generate a key (to convince server that the update is not random)
+    // The key is for the server to prove it is websocket aware. (We know it is)
+    $key=base64_encode(openssl_random_pseudo_bytes(16));
+
+    $hArr = array();
+    $hArr[] = "GET $path HTTP/1.1";
+    $hArr[] = "Host: $host";
+    $hArr[] = 'pragma: no-cache';
+    $hArr[] = 'Upgrade: WebSocket';
+    $hArr[] = 'Connection: Upgrade';
+    $hArr[] = "User-Agent: $agent";
+    $hArr[] = "Sec-WebSocket-Key: $key";
+    $hArr[] = 'Sec-WebSocket-Version: 13';
+
+    // Add extra headers
+    if(!empty($headers)) $hArr = array_merge($hArr, $headers);
+
+    // Stringify and add end of header marker
+    $header = implode($nl, $hArr).$nl.$nl;
 
     //Request upgrade to websocket
     try{
