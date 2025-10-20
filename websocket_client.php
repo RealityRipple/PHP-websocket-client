@@ -82,6 +82,7 @@
   "Sec-WebSocket-Accept"
 \*============================================================================*/
 function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout=10,$ssl=false, $persistant = false, $path = '/', $context = null){
+  $nl = "\r\n";
   $magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
   $protoSSL = 'ssl://';
 
@@ -89,20 +90,20 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
   // The key is for the server to prove it is websocket aware. (We know it is)
   $key=base64_encode(openssl_random_pseudo_bytes(16));
 
-  $header = "GET " . $path . " HTTP/1.1\r\n"
-    ."Host: $host\r\n"
-    ."pragma: no-cache\r\n"
-    ."Upgrade: WebSocket\r\n"
-    ."Connection: Upgrade\r\n"
-    ."User-Agent: Mozilla/5.0 (X11; Linux x86_64)\r\n"
-    ."Sec-WebSocket-Key: $key\r\n"
-    ."Sec-WebSocket-Version: 13\r\n";
+  $header = "GET $path HTTP/1.1$nl"
+    ."Host: $host$nl"
+    ."pragma: no-cache$nl"
+    ."Upgrade: WebSocket$nl"
+    ."Connection: Upgrade$nl"
+    ."User-Agent: Mozilla/5.0 (X11; Linux x86_64)$nl"
+    ."Sec-WebSocket-Key: $key$nl"
+    ."Sec-WebSocket-Version: 13$nl";
 
   // Add extra headers
-  if(!empty($headers)) foreach($headers as $h) $header.=$h."\r\n";
+  if(!empty($headers)) foreach($headers as $h) $header.=$h.$nl;
 
   // Add end of header marker
-  $header.="\r\n";
+  $header.=$nl;
 
   // Connect to server
   $host = $host ? $host : "127.0.0.1";
@@ -138,7 +139,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
 
     // Retrieve response from the server
     $response_header = '';
-    while(strpos($response_header, "\r\n\r\n") === false){
+    while(strpos($response_header, $nl.$nl) === false){
       $response_header.=fread($sp, 1024);
     }
 
@@ -153,7 +154,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     // C5AB0DC85B11" and then base64-encoded. one can verify if one feels the need...
 
     $chk=base64_encode(hash('sha1',$key.$magic,true));
-    $hList=explode("\r\n",$response_header);
+    $hList=explode($nl,$response_header);
     for($i=0;$i<count($hList);$i++){
       if(strpos($hList[$i],':') === false)
         continue;
