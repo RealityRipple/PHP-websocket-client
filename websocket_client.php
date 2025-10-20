@@ -115,137 +115,140 @@ function websocket_open($host='127.0.0.1',$port=0,$headers='',&$error_string='',
   // Set timeouts
   stream_set_timeout($sp,$timeout);
 
-  if (!$persistant || ftell($sp) === 0) {
-    // Generate a key (to convince server that the update is not random)
-    // The key is for the server to prove it is websocket aware. (We know it is)
-    $key=base64_encode(openssl_random_pseudo_bytes(16));
+  // If this is a persistant connection that's already been active,
+  // then all the initial negotiation has been taken care of.
+  if ($persistant && ftell($sp) > 0)
+    return $sp;
 
-    $hArr = array();
-    $hArr[] = "GET $path HTTP/1.1";
-    $hArr[] = "Host: $host";
-    $hArr[] = 'pragma: no-cache';
-    $hArr[] = 'Upgrade: WebSocket';
-    $hArr[] = 'Connection: Upgrade';
-    $hArr[] = "User-Agent: $agent";
-    $hArr[] = "Sec-WebSocket-Key: $key";
-    $hArr[] = 'Sec-WebSocket-Version: 13';
+  // Generate a key (to convince server that the update is not random)
+  // The key is for the server to prove it is websocket aware. (We know it is)
+  $key=base64_encode(openssl_random_pseudo_bytes(16));
 
-    // Add extra headers
-    if(!empty($headers)) $hArr = array_merge($hArr, $headers);
+  $hArr = array();
+  $hArr[] = "GET $path HTTP/1.1";
+  $hArr[] = "Host: $host";
+  $hArr[] = 'pragma: no-cache';
+  $hArr[] = 'Upgrade: WebSocket';
+  $hArr[] = 'Connection: Upgrade';
+  $hArr[] = "User-Agent: $agent";
+  $hArr[] = "Sec-WebSocket-Key: $key";
+  $hArr[] = 'Sec-WebSocket-Version: 13';
 
-    // Stringify and add end of header marker
-    $header = implode($nl, $hArr).$nl.$nl;
+  // Add extra headers
+  if(!empty($headers)) $hArr = array_merge($hArr, $headers);
 
-    //Request upgrade to websocket
-    try{
-      $rc = fwrite($sp,$header);
-    }
-    catch(Exception $e){
-      $rc = false;
-    }
-    if(!$rc){
-      $error_string
-        = "Unable to send upgrade header to websocket server: $errstr ($errno)";
+  // Stringify and add end of header marker
+  $header = implode($nl, $hArr).$nl.$nl;
+
+  //Request upgrade to websocket
+  try{
+    $rc = fwrite($sp,$header);
+  }
+  catch(Exception $e){
+    $rc = false;
+  }
+  if(!$rc){
+    $error_string
+      = "Unable to send upgrade header to websocket server: $errstr ($errno)";
+    return false;
+  }
+
+  // Retrieve response from the server
+  $response_header = '';
+  while(strpos($response_header, $nl.$nl) === false){
+    $apnd=fread($sp,1024);
+    if($apnd === false){
+      $error_string = "Reading header from websocket failed.";
       return false;
     }
+    $response_header.=$apnd;
+  }
+  // Ignore any content body and trim off the trailing double-new-line
+  $response_header = substr($response_header,0,strpos($response_header,$nl.$nl));
 
-    // Retrieve response from the server
-    $response_header = '';
-    while(strpos($response_header, $nl.$nl) === false){
-      $apnd=fread($sp,1024);
-      if($apnd === false){
-        $error_string = "Reading header from websocket failed.";
-        return false;
-      }
-      $response_header.=$apnd;
+  // Read response into an associative array of headers.
+  $hRet = array();
+  $hList = explode($nl,$response_header);
+  if(count($hList)<2){
+    $error_string = "Server did not respond with an expected HTTP response.";
+    return false;
+  }
+  $hVer = $hList[0];
+  if(substr($hVer,0,5) !== 'HTTP/'){
+    $error_string = "Server did not respond with an expected HTTP response.";
+    return false;
+  }
+  $aVer=explode(' ',$hVer,3);
+  if(count($aVer) !== 3){
+    $error_string = "HTTP response not understood: $hVer";
+    return false;
+  }
+  // Status code 101 indicates that the WebSocket handshake has completed.
+  if($aVer[1] !== '101'){
+    $error_string = "HTTP response code: ".$aVer[1];
+    return false;
+  }
+  for($i=1;$i<count($hList);$i++){
+    if(strpos($hList[$i],':') === false)
+      continue;
+    list($k,$v) = explode(':',$hList[$i],2);
+    // Case-Insensitive keys, please.
+    $k = strtolower($k);
+    if(!array_key_exists($k,$hRet))
+      $hRet[$k] = array();
+    // Split values into array by comma, except set-cookie
+    if($k === 'set-cookie'){
+      $hRet[$k][] = trim($v);
+      continue;
     }
-    // Ignore any content body and trim off the trailing double-new-line
-    $response_header = substr($response_header,0,strpos($response_header,$nl.$nl));
+    $vs = explode(',',$v);
+    for($c=0;$c<count($vs);$c++){
+      $hRet[$k][] = trim($vs[$c]);
+    }
+  }
+  if($strict){
+    if(!array_key_exists('connection',$hRet)){
+      $error_string = "Server did not return a connection header.";
+      return false;
+    }
+    if(count($hRet['connection']) !== 1){
+      $error_string = "Server returned ".count($hRet['connection'])." Connection headers.";
+      return false;
+    }
+    if($hRet['connection'][0] !== 'upgrade'){
+      $error_string = "Server did not mark the connection for upgrade.";
+      return false;
+    }
+    if(!array_key_exists('upgrade',$hRet)){
+      $error_string = "Server did not return an upgrade header.";
+      return false;
+    }
+    if(count($hRet['upgrade']) !== 1){
+      $error_string = "Server returned ".count($hRet['upgrade'])." Upgrade headers.";
+      return false;
+    }
+    if($hRet['upgrade'][0] !== 'websocket'){
+      $error_string = "Server did not upgrade the connection to websocket.";
+      return false;
+    }
+  }
+  if(!array_key_exists('sec-websocket-accept',$hRet)){
+    $error_string = "Server did not accept to upgrade connection to websocket.";
+    return false;
+  }
+  if($strict){
+    if(count($hRet['sec-websocket-accept']) !== 1){
+      $error_string = "Server sent ".count($hRet['sec-websocket-accept'])." accept responses.";
+      return false;
+    }
+    // The key we send is returned, concatenate with "258EAFA5-E914-47DA-95CA-
+    // C5AB0DC85B11" and then base64-encoded. one can verify if one feels the need...
 
-    // Read response into an associative array of headers.
-    $hRet = array();
-    $hList = explode($nl,$response_header);
-    if(count($hList)<2){
-      $error_string = "Server did not respond with an expected HTTP response.";
+    $chk=base64_encode(hash('sha1',$key.$magic,true));
+    $srt=$hRet['sec-websocket-accept'][0];
+    if($srt !== $chk){
+      $error_string = "Invalid Check: $srt is not equal to $chk\n";
       return false;
-    }
-    $hVer = $hList[0];
-    if(substr($hVer,0,5) !== 'HTTP/'){
-      $error_string = "Server did not respond with an expected HTTP response.";
-      return false;
-    }
-    $aVer=explode(' ',$hVer,3);
-    if(count($aVer) !== 3){
-      $error_string = "HTTP response not understood: $hVer";
-      return false;
-    }
-    // Status code 101 indicates that the WebSocket handshake has completed.
-    if($aVer[1] !== '101'){
-      $error_string = "HTTP response code: ".$aVer[1];
-      return false;
-    }
-    for($i=1;$i<count($hList);$i++){
-      if(strpos($hList[$i],':') === false)
-        continue;
-      list($k,$v) = explode(':',$hList[$i],2);
-      // Case-Insensitive keys, please.
-      $k = strtolower($k);
-      if(!array_key_exists($k,$hRet))
-        $hRet[$k] = array();
-      // Split values into array by comma, except set-cookie
-      if($k === 'set-cookie'){
-        $hRet[$k][] = trim($v);
-        continue;
-      }
-      $vs = explode(',',$v);
-      for($c=0;$c<count($vs);$c++){
-        $hRet[$k][] = trim($vs[$c]);
-      }
-    }
-    if($strict){
-      if(!array_key_exists('connection',$hRet)){
-        $error_string = "Server did not return a connection header.";
-        return false;
-      }
-      if(count($hRet['connection']) !== 1){
-        $error_string = "Server returned ".count($hRet['connection'])." Connection headers.";
-        return false;
-      }
-      if($hRet['connection'][0] !== 'upgrade'){
-        $error_string = "Server did not mark the connection for upgrade.";
-        return false;
-      }
-      if(!array_key_exists('upgrade',$hRet)){
-        $error_string = "Server did not return an upgrade header.";
-        return false;
-      }
-      if(count($hRet['upgrade']) !== 1){
-        $error_string = "Server returned ".count($hRet['upgrade'])." Upgrade headers.";
-        return false;
-      }
-      if($hRet['upgrade'][0] !== 'websocket'){
-        $error_string = "Server did not upgrade the connection to websocket.";
-        return false;
-      }
-    }
-    if(!array_key_exists('sec-websocket-accept',$hRet)){
-      $error_string = "Server did not accept to upgrade connection to websocket.";
-      return false;
-    }
-    if($strict){
-      if(count($hRet['sec-websocket-accept']) !== 1){
-        $error_string = "Server sent ".count($hRet['sec-websocket-accept'])." accept responses.";
-        return false;
-      }
-      // The key we send is returned, concatenate with "258EAFA5-E914-47DA-95CA-
-      // C5AB0DC85B11" and then base64-encoded. one can verify if one feels the need...
-
-      $chk=base64_encode(hash('sha1',$key.$magic,true));
-      $srt=$hRet['sec-websocket-accept'][0];
-      if($srt !== $chk){
-        $error_string = "Invalid Check: $srt is not equal to $chk\n";
-        return false;
-      }
     }
   }
   return $sp;
