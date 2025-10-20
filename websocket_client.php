@@ -82,6 +82,7 @@
   "Sec-WebSocket-Accept"
 \*============================================================================*/
 function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout=10,$ssl=false, $persistant = false, $path = '/', $context = null){
+  $magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
   // Generate a key (to convince server that the update is not random)
   // The key is for the server to prove it is websocket aware. (We know it is)
@@ -150,7 +151,7 @@ function websocket_open($host='',$port=80,$headers='',&$error_string='',$timeout
     // The key we send is returned, concatenate with "258EAFA5-E914-47DA-95CA-
     // C5AB0DC85B11" and then base64-encoded. one can verify if one feels the need...
 
-    $chk=base64_encode(hash('sha1',$key.'258EAFA5-E914-47DA-95CA-C5AB0DC85B11',true));
+    $chk=base64_encode(hash('sha1',$key.$magic,true));
     $hList=explode("\r\n",$response_header);
     for($i=0;$i<count($hList);$i++){
       if(strpos($hList[$i],':') === false)
